@@ -1,4 +1,4 @@
-package utils
+package modulego
 
 import (
 	"crypto/tls"
@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/datadome/module-go-package/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,7 +20,7 @@ func setup() *http.Request {
 }
 
 func TestMicroTime(t *testing.T) {
-	if len(GetMicroTime()) != 16 {
+	if len(getMicroTime()) != 16 {
 		t.Error("Microtime unit test fail")
 		return
 	}
@@ -30,7 +29,7 @@ func TestMicroTime(t *testing.T) {
 func TestGetIP(t *testing.T) {
 	request := setup()
 
-	result, err := GetIP(request)
+	result, err := getIP(request)
 	assert.Equal(t, "127.0.0.1", result)
 	assert.Equal(t, nil, err)
 }
@@ -38,7 +37,7 @@ func TestGetIP(t *testing.T) {
 func TestGetHeaderList(t *testing.T) {
 	request := setup()
 
-	result := GetHeaderList(request)
+	result := getHeaderList(request)
 	assert.Contains(t, result, "Hello")
 	assert.Contains(t, result, "X-Test")
 }
@@ -46,11 +45,11 @@ func TestGetHeaderList(t *testing.T) {
 func TestGetURL(t *testing.T) {
 	request := setup()
 
-	result := GetURL(request)
+	result := getURL(request)
 	assert.Equal(t, "/ping", result)
 
 	request = httptest.NewRequest(http.MethodGet, "/ping?a=b", nil)
-	result = GetURL(request)
+	result = getURL(request)
 	assert.Equal(t, "/ping?a=b", result)
 }
 
@@ -68,7 +67,7 @@ func TestGetURI(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := GetURI(tc.input)
+		got := getURI(tc.input)
 		assert.Equal(t, tc.want, got)
 	}
 }
@@ -81,26 +80,26 @@ func TestGetURI(t *testing.T) {
 // 5. Wrong GraphQL query
 func TestParseGraphQLQuery(t *testing.T) {
 	tests := []struct {
-		want  models.GraphQLData
+		want  GraphQLData
 		input string
 	}{
-		{want: models.GraphQLData{Count: 1, Name: "", Type: models.Query}, input: `{"query":"{ todos { title }}"}`},
-		{want: models.GraphQLData{Count: 1, Name: "LoginV2", Type: models.Mutation}, input: `{"query":"mutation LoginV2($loginV2LoginName2: String!, $loginV2Password2: String!, $loginV2ServiceLocationId3: ID!) { loginV2(loginName: $loginV2LoginName2, password: $loginV2Password2, serviceLocationId: $loginV2ServiceLocationId3) { cookieAdapterToken msg }}","variables":{"loginV2LoginName2":"alpha@staging.com","loginV2Password2":"Test1234","loginV2ServiceLocationId3":"50000059"}}`},
-		{want: models.GraphQLData{Count: 1, Name: "Coupons", Type: models.Query}, input: `{"query":"query Coupons($couponsServiceLocationId3: ID!) { coupons(serviceLocationId: $couponsServiceLocationId3) { coupons { name title circularId couponType endDate } } }","variables":{"couponsServiceLocationId3":"50000059"}}`},
-		{want: models.GraphQLData{Count: 4, Name: "One", Type: models.Mutation}, input: `{"query":"mutation One { # Do something ...}mutation Two { # Do something ...}query Three @depends(on: [\"One\", \"Two\"]) { # Do something ...}query Four @depends(on: \"Three\") { # Do something ...}"}`},
-		{want: models.GraphQLData{Count: 1, Name: "", Type: models.Query}, input: `{"query":"query { todos { title }}"}`},
-		{want: models.GraphQLData{Count: 0, Name: "", Type: models.Query}, input: `{"query":"mutatio RefreshTokenV2 $serviceLocationId: ID!) { refreshTokenV2(serviceLocationId: $serviceLocationId) { cookieAdapterToken msg }}","variables":{"serviceLocationId":""}}`},
+		{want: GraphQLData{Count: 1, Name: "", Type: Query}, input: `{"query":"{ todos { title }}"}`},
+		{want: GraphQLData{Count: 1, Name: "LoginV2", Type: Mutation}, input: `{"query":"mutation LoginV2($loginV2LoginName2: String!, $loginV2Password2: String!, $loginV2ServiceLocationId3: ID!) { loginV2(loginName: $loginV2LoginName2, password: $loginV2Password2, serviceLocationId: $loginV2ServiceLocationId3) { cookieAdapterToken msg }}","variables":{"loginV2LoginName2":"alpha@staging.com","loginV2Password2":"Test1234","loginV2ServiceLocationId3":"50000059"}}`},
+		{want: GraphQLData{Count: 1, Name: "Coupons", Type: Query}, input: `{"query":"query Coupons($couponsServiceLocationId3: ID!) { coupons(serviceLocationId: $couponsServiceLocationId3) { coupons { name title circularId couponType endDate } } }","variables":{"couponsServiceLocationId3":"50000059"}}`},
+		{want: GraphQLData{Count: 4, Name: "One", Type: Mutation}, input: `{"query":"mutation One { # Do something ...}mutation Two { # Do something ...}query Three @depends(on: [\"One\", \"Two\"]) { # Do something ...}query Four @depends(on: \"Three\") { # Do something ...}"}`},
+		{want: GraphQLData{Count: 1, Name: "", Type: Query}, input: `{"query":"query { todos { title }}"}`},
+		{want: GraphQLData{Count: 0, Name: "", Type: Query}, input: `{"query":"mutatio RefreshTokenV2 $serviceLocationId: ID!) { refreshTokenV2(serviceLocationId: $serviceLocationId) { cookieAdapterToken msg }}","variables":{"serviceLocationId":""}}`},
 	}
 
 	for _, tc := range tests {
-		got := ParseGraphQLQuery(tc.input)
+		got := parseGraphQLQuery(tc.input)
 		assert.Equal(t, tc.want.Count, got.Count)
 		assert.Equal(t, tc.want.Name, got.Name)
 		assert.Equal(t, tc.want.Type, got.Type)
 	}
 }
 
-func TestGetApiKeyValue(t *testing.T) {
+func TestTruncateValue(t *testing.T) {
 	type Header struct {
 		Key   ApiFields
 		Value string
@@ -129,27 +128,11 @@ func TestGetApiKeyValue(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := GetApiKeyValue(tc.input.Key, tc.input.Value)
+		got := truncateValue(tc.input.Key, tc.input.Value)
 		assert.Equal(t, tc.want, len(got))
 		if tc.input.Key == XForwardedForIP {
 			assert.Equal(t, fakeEndXFFValue, got)
 		}
-	}
-}
-
-func TestIsNullOrWhitespace(t *testing.T) {
-	tests := []struct {
-		want  bool
-		input string
-	}{
-		{want: true, input: " "},
-		{want: true, input: ""},
-		{want: false, input: "wrong"},
-	}
-
-	for _, tc := range tests {
-		got := IsNullOrWhitespace(tc.input)
-		assert.Equal(t, tc.want, got)
 	}
 }
 
@@ -174,7 +157,7 @@ func TestGetProtocol(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := GetProtocol(tc.input)
+		got := getProtocol(tc.input)
 		assert.Equal(t, tc.want, got)
 	}
 }
@@ -200,7 +183,7 @@ func TestIsMatchingReferer(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got, _ := IsMatchingReferrer(tc.input)
+		got, _ := isMatchingReferrer(tc.input)
 		assert.Equal(t, tc.want, got)
 	}
 }
@@ -232,7 +215,7 @@ func TestRestoreReferrer(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		got := RestoreReferrer(tc.input)
+		got := restoreReferrer(tc.input)
 		assert.Equal(t, tc.want.Error, got)
 		assert.Equal(t, tc.input.Header.Get("Referer"), tc.want.Referrer)
 

@@ -1,4 +1,4 @@
-package datadome
+package modulego
 
 import (
 	"fmt"
@@ -51,32 +51,47 @@ func DoCall(t *testing.T, url string, method string) (*http.Response, http.Respo
 }
 
 func TestNewClient(t *testing.T) {
-	ddStruct := &DataDomeStruct{
-		DatadomeServerSideKey: "azerty",
-	}
-	dd, _ := NewClient(ddStruct)
+	t.Run("Instantiate client with default values", func(t *testing.T) {
+		serverSideKey := "your-api-key"
+		c, err := NewClient(serverSideKey)
 
-	assert.Equal(t, dd.DataDomeEndpoint, "api.datadome.co")
-	assert.Equal(t, dd.DataDomeTimeout, 150)
-	assert.Equal(t, dd.UrlPatternExclusion, `(?i)\.(avi|flv|mka|mkv|mov|mp4|mpeg|mpg|mp3|flac|ogg|ogm|opus|wav|webm|webp|bmp|gif|ico|jpeg|jpg|png|svg|svgz|swf|eot|otf|ttf|woff|woff2|css|less|js|map|json)$`)
+		assert.Nil(t, err)
+		assert.Equal(t, DefaultEnableGraphQLSupportValue, c.EnableGraphQLSupport)
+		assert.Equal(t, DefaultEnableReferrerRestorationValue, c.EnableReferrerRestoration)
+		assert.Equal(t, DefaultEndpointValue, c.Endpoint)
+		assert.NotNil(t, c.Logger)
+		assert.Equal(t, DefaultMaximumBodySizeValue, c.MaximumBodySize)
+		assert.Equal(t, DefaultModuleNameValue, c.ModuleName)
+		assert.Equal(t, DefaultModuleVersionValue, c.ModuleVersion)
+		assert.Equal(t, serverSideKey, c.ServerSideKey)
+		assert.Equal(t, DefaultTimeoutValue, c.Timeout)
+		assert.Equal(t, DefaultUrlPatternInclusionValue, c.UrlPatternInclusion)
+		assert.Equal(t, DefaultUrlPatternExclusionValue, c.UrlPatternExclusion)
 
-	ddFakeStruct := &DataDomeStruct{}
-	_, err := NewClient(ddFakeStruct)
-	assert.NotEqual(t, err, nil)
+		assert.NotNil(t, c.httpClient)
+		assert.NotNil(t, c.urlPatternExclusion)
+		assert.Nil(t, c.urlPatternInclusion)
+	})
+
+	t.Run("Error is returned when passing an empty string for the server-side key", func(t *testing.T) {
+		c, err := NewClient("")
+
+		assert.Nil(t, c)
+		assert.NotNil(t, err)
+		assert.Equal(t, "ServerSideKey must be defined", err.Error())
+	})
 }
 
 func TestBuildRequest(t *testing.T) {
-	dd := &DataDomeStruct{
-		DatadomeServerSideKey: "Ob1w4n K3n0by",
-		ModuleVersion:         "1.1.0",
-	}
+	dd, err := NewClient("Ob1w4n K3n0by")
+	assert.Nil(t, err)
 
 	request := setupRequest()
-	result, err := dd.buildRequest(request, "Golang_Test")
+	result, err := dd.buildRequest(request)
 
 	assert.Equal(t, nil, err)
-	expectedResult := "APIConnectionState=new&Accept=application%2Fjson&AcceptCharset=utf8&AcceptEncoding=fr-FR&AuthorizationLen=0&CacheControl=max-age%3D604800&Connection=new&CookiesLen=0&HeadersList=Accept-Encoding%2COrigin%2CX-Requested-With%2CHello%2CUser-Agent%2CReferer%2CAccept%2CCache-Control%2CX-Real-Ip%2CAccept-Charset%2CX-Forwarded-For%2CConnection%2CPragma&Host=www.example.com&IP=127.0.0.1&Key=Ob1w4n+K3n0by&Method=GET&ModuleVersion=1.1.0&Origin=www.example.com&PostParamLen=0&Pragma=no-cache&Protocol=http&Referer=www.example2.com&Request=%2Fping&RequestModuleName=Golang_Test&ServerHostname=www.example.com&Port=80&ServerName=www.example.com&TimeRequest=1695386441016659&UserAgent=%C3%BCber+cool+mozilla&X-Real-IP=127.0.0.1&X-Requested-With=%C3%BCber_script&XForwardedForIP=192.168.10.10%2C+127.0.0.1"
-	// Should be around 793 chars length
+	expectedResult := fmt.Sprintf("APIConnectionState=new&Accept=application%%2Fjson&AcceptCharset=utf8&AcceptEncoding=fr-FR&AuthorizationLen=0&CacheControl=max-age%%3D604800&Connection=new&CookiesLen=0&HeadersList=Accept-Encoding%%2COrigin%%2CX-Requested-With%%2CHello%%2CUser-Agent%%2CReferer%%2CAccept%%2CCache-Control%%2CX-Real-Ip%%2CAccept-Charset%%2CX-Forwarded-For%%2CConnection%%2CPragma&Host=www.example.com&IP=127.0.0.1&Key=Ob1w4n+K3n0by&Method=GET&ModuleVersion=%s&Origin=www.example.com&PostParamLen=0&Pragma=no-cache&Protocol=http&Referer=www.example2.com&Request=%%2Fping&RequestModuleName=%s&ServerHostname=www.example.com&Port=80&ServerName=www.example.com&TimeRequest=1695386441016659&UserAgent=%%C3%%BCber+cool+mozilla&X-Real-IP=127.0.0.1&X-Requested-With=%%C3%%BCber_script&XForwardedForIP=192.168.10.10%%2C+127.0.0.1", DefaultModuleVersionValue, DefaultModuleNameValue)
+
 	if len(expectedResult) != len(result) {
 		t.Error("Result length don't match")
 		return
@@ -102,21 +117,26 @@ func TestAddDataDomeHeaders(t *testing.T) {
 			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
 				"key": "value",
 			})
-			resp.Header.Add("X-Datadome-Headers", "X-Datadome")
+			resp.Header.Add("X-Datadome-Headers", "X-Datadome Set-Cookie")
 			resp.Header.Add("X-Datadome", "protected")
+			resp.Header.Add("Set-Cookie", "datadome=other_value")
 			return resp, err
 		},
 	)
 
 	_, origResp, err := DoCall(t, "/ping", http.MethodGet)
 	assert.Equal(t, nil, err)
+	origResp.Header().Add("Set-Cookie", "some_cookie=some_value")
 	ddResp, _, err := DoCall(t, "/validate-request", http.MethodPost)
 	assert.Equal(t, nil, err)
 
-	addDataDomeHeaders(ddResp, origResp)
+	origResp = addDataDomeHeaders(ddResp, origResp)
 
 	assert.Equal(t, "", origResp.Header().Get("X-Datadome-Headers"))
 	assert.Equal(t, "protected", origResp.Header().Get("X-Datadome"))
+	for _, cookie := range origResp.Header()["Set-Cookie"] {
+		assert.Contains(t, []string{"datadome=other_value", "some_cookie=some_value"}, cookie)
+	}
 }
 
 func TestDefaultEndpointOnCustomDomain(t *testing.T) {
@@ -145,10 +165,8 @@ func TestDefaultEndpointOnCustomDomain(t *testing.T) {
 		},
 	)
 
-	ddStruct := &DataDomeStruct{
-		DatadomeServerSideKey: "azerty",
-		DataDomeEndpoint:      "api.datadome.co",
-	}
+	ddStruct, err := NewClient("azerty")
+	assert.Nil(t, err)
 
 	rw := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
@@ -157,7 +175,7 @@ func TestDefaultEndpointOnCustomDomain(t *testing.T) {
 	assert.False(t, isBlocked)
 }
 
-func TestDefaultEndpoint(t *testing.T) {
+func TestDatadomeProtect_NotBlocked(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -183,10 +201,8 @@ func TestDefaultEndpoint(t *testing.T) {
 		},
 	)
 
-	ddStruct := &DataDomeStruct{
-		DatadomeServerSideKey: "azerty",
-		DataDomeEndpoint:      "",
-	}
+	ddStruct, err := NewClient("azerty")
+	assert.Nil(t, err)
 
 	rw := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
@@ -195,45 +211,7 @@ func TestDefaultEndpoint(t *testing.T) {
 	assert.False(t, isBlocked)
 }
 
-func TestProtectNotBlocked(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
-	// Mock http call
-	httpmock.RegisterResponder("GET", "/ping",
-		func(req *http.Request) (*http.Response, error) {
-			resp := httpmock.NewStringResponse(200, "pong")
-			resp.Header.Add("X-Result", "true")
-			return resp, nil
-		},
-	)
-
-	// Mock API server call
-	httpmock.RegisterResponder("POST", "/validate-request",
-		func(req *http.Request) (*http.Response, error) {
-			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
-				"key": "value",
-			})
-			resp.Header.Add("X-Datadome-Headers", "X-Datadome")
-			resp.Header.Add("X-Datadome", "protected")
-			resp.Header.Add("X-Datadomeresponse", "200")
-			return resp, err
-		},
-	)
-
-	ddStruct := &DataDomeStruct{
-		DatadomeServerSideKey: "azerty",
-		DataDomeEndpoint:      "/validate-request",
-	}
-
-	rw := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
-	isBlocked, err := ddStruct.DatadomeProtect(rw, r)
-	assert.Empty(t, err)
-	assert.False(t, isBlocked)
-}
-
-func TestProtectBlocked(t *testing.T) {
+func TestDatadomeProtect_Blocked(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -259,16 +237,36 @@ func TestProtectBlocked(t *testing.T) {
 		},
 	)
 
-	ddStruct := &DataDomeStruct{
-		DatadomeServerSideKey: "azerty",
-		DataDomeEndpoint:      "/validate-request",
-	}
+	ddStruct, err := NewClient("azerty")
+	assert.Nil(t, err)
 
 	rw := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	isBlocked, err := ddStruct.DatadomeProtect(rw, r)
 	assert.Empty(t, err)
 	assert.True(t, isBlocked)
+}
+
+func TestDatadomeProtect_ExcludedPath(t *testing.T) {
+	client, err := NewClient("azerty")
+	assert.Nil(t, err)
+
+	rw := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/picture.jpg", nil)
+	isBlocked, err := client.DatadomeProtect(rw, r)
+	assert.Empty(t, err)
+	assert.False(t, isBlocked)
+}
+
+func TestDatadomeProtect_IncludedPath(t *testing.T) {
+	client, err := NewClient("azerty", WithUrlPatternInclusion(`(?i).*/included-path/?.*`))
+	assert.Nil(t, err)
+
+	rw := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/not-included-path", nil)
+	isBlocked, err := client.DatadomeProtect(rw, r)
+	assert.Empty(t, err)
+	assert.False(t, isBlocked)
 }
 
 func TestAddDataDomeRequestHeaders(t *testing.T) {

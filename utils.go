@@ -1,10 +1,9 @@
-package utils
+package modulego
 
 import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -13,22 +12,22 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/datadome/module-go-package/models"
 )
 
-// GetMicroTime returns the current unix timestamp in microseconds
+// getMicroTime returns the current unix timestamp in microseconds
 // This function needs to implement the time.UnixMicro function when Tyk will support the go version >= 1.18
-func GetMicroTime() string {
+func getMicroTime() string {
 	return strconv.FormatInt(time.Now().UnixNano()/1000, 10)
 }
 
-func GetIP(r *http.Request) (string, error) {
+// getIP returns the IP of the emitter from the RemoteAddr field of the request.
+func getIP(r *http.Request) (string, error) {
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	return ip, err
 }
 
-func GetHeaderList(r *http.Request) string {
+// getHeaderList returns the list of header's keys separated by commas
+func getHeaderList(r *http.Request) string {
 	headerNames := make([]string, 0, len(r.Header))
 
 	for headerName := range r.Header {
@@ -38,7 +37,8 @@ func GetHeaderList(r *http.Request) string {
 	return strings.Join(headerNames, ",")
 }
 
-func GetURL(r *http.Request) string {
+// getURL returns the path and the query parameters (if present) of the request
+func getURL(r *http.Request) string {
 	if r.URL.RawQuery != "" {
 		return r.URL.Path + "?" + r.URL.RawQuery
 	} else {
@@ -54,9 +54,9 @@ func cut(s, sep string) (before, after string, found bool) {
 	return s, "", false
 }
 
-// GetURI returns the URI without the query parameters nor the Fragments
+// getURI returns the URI without the query parameters nor the Fragments.
 // This function needs to implement the strings.Cut function when Tyk will support the go version >= 1.18
-func GetURI(r *http.Request) string {
+func getURI(r *http.Request) string {
 	var finalPath string
 
 	pathWithoutQueryParams, _, _ := cut(r.URL.Path, "?")
@@ -66,6 +66,7 @@ func GetURI(r *http.Request) string {
 	return finalUri
 }
 
+// ApiFields describes the fields expected for the [ProtectionAPIRequestPayload]
 type ApiFields string
 
 const (
@@ -108,7 +109,8 @@ const (
 	XRequestedWith         ApiFields = "XRequestedWith"
 )
 
-func getApiKeyLength(key ApiFields) int {
+// getTruncationSize returns the maximal size allowed for a given [ApiFields]
+func getTruncationSize(key ApiFields) int {
 	switch key {
 	case SecCHDeviceMemory, SecCHUAMobile, SecFetchUser:
 		return 8
@@ -134,29 +136,34 @@ func getApiKeyLength(key ApiFields) int {
 		return 2048
 	}
 
-	return -1
+	return 0
 }
 
-func GetApiKeyValue(key ApiFields, value string) string {
+// truncateValue returns the truncated value of the given key.
+// If the value does not need to be truncated, it remains unchanged.
+func truncateValue(key ApiFields, value string) string {
 	if value == "" {
 		return ""
 	}
 
-	limit := getApiKeyLength(key)
-	if limit < -1 && len(value) > (-1*limit) {
+	limit := getTruncationSize(key)
+	if limit < 0 && len(value) > (-1*limit) {
 		limit *= -1
 		value = value[len(value)-limit:]
-	} else if limit > -1 && len(value) > limit {
+	} else if limit > 0 && len(value) > limit {
 		value = value[:limit]
 	}
 
 	return value
 }
 
-func IsGraphQLRequest(r *http.Request) bool {
+// isGraphQLRequest indicates if the incoming request is a GraphQL request.
+func isGraphQLRequest(r *http.Request) bool {
 	return r.Header.Get("Content-Type") == "application/json" && r.Method == "POST" && r.ContentLength > 0 && strings.Contains(r.URL.Path, "graphql")
 }
 
+// readBodyWithoutConsuming extracts the GraphQL query from the body.
+// When the body has been fully read, it is restored to the original request.
 func readBodyWithoutConsuming(r *http.Request, maximumBodySize int) ([]byte, error) {
 	readSize := 1024
 	regexp := regexp.MustCompile(`"query"\s*:\s*("(?:query|mutation|subscription)?\s*(?:[A-Za-z_][A-Za-z0-9_]*)?\s*[{(].*)`)
@@ -205,10 +212,11 @@ func readBodyWithoutConsuming(r *http.Request, maximumBodySize int) ([]byte, err
 	return matchedBytes, nil
 }
 
-func ParseGraphQLQuery(body string) *models.GraphQLData {
-	gqlData := &models.GraphQLData{
+// parseGraphQLQuery returns a [GraphQLData] structure with information extracted from the body.
+func parseGraphQLQuery(body string) *GraphQLData {
+	gqlData := &GraphQLData{
 		Count: 0,
-		Type:  models.Query,
+		Type:  Query,
 		Name:  "",
 	}
 	regex := regexp.MustCompile(`(?m)(?P<operationType>query|mutation|subscription)\s*(?P<operationName>[A-Za-z_][A-Za-z0-9_]*)?\s*[({@]`)
@@ -222,7 +230,7 @@ func ParseGraphQLQuery(body string) *models.GraphQLData {
 		operationNameIndex := regex.SubexpIndex("operationName")
 
 		if operationTypeIndex != -1 && operationTypeIndex < len(firstMatch) {
-			gqlData.Type = models.GraphQLOperationType(firstMatch[operationTypeIndex])
+			gqlData.Type = OperationType(firstMatch[operationTypeIndex])
 		}
 		if operationNameIndex != -1 && operationNameIndex < len(firstMatch) {
 			gqlData.Name = firstMatch[operationNameIndex]
@@ -236,31 +244,27 @@ func ParseGraphQLQuery(body string) *models.GraphQLData {
 	return gqlData
 }
 
-func GetGraphQLData(r *http.Request, maximumBodySize int) *models.GraphQLData {
-	defaultResult := models.GraphQLData{
-		Count: 0,
-		Type:  models.Query,
-		Name:  "",
-	}
+// getGraphQLData reads the body to extract the GraphQL query and parse it.
+// An error is returned if
+// - an error happened during the lecture of the body
+// - the GraphQL query was not found
+func getGraphQLData(r *http.Request, maximumBodySize int) (*GraphQLData, error) {
 	body, err := readBodyWithoutConsuming(r, maximumBodySize)
 	if err != nil {
-		log.Printf("error while reading request body: %v", err)
-		return &defaultResult
+		return nil, fmt.Errorf("error while reading request body: %w", err)
 	}
 	if body == nil {
-		log.Printf("query not found in the request body")
-		return &defaultResult
+		return nil, fmt.Errorf("query not found in the request body")
 	}
 	bodyStr := string(body)
 
-	return ParseGraphQLQuery(bodyStr)
+	return parseGraphQLQuery(bodyStr), nil
 }
 
-func IsNullOrWhitespace(s string) bool {
-	return len(strings.TrimSpace(s)) == 0
-}
-
-func GetProtocol(r *http.Request) string {
+// getProtocol returns the protocol of the request.
+// It uses the `X-Forwarded-Proto` header value if the value is correct (i.e. `http` or `https`).
+// It checks the TLS field of the request afterwards.
+func getProtocol(r *http.Request) string {
 	proto := "http"
 	xForwardedProto := r.Header.Get("X-Forwarded-Proto")
 	if strings.EqualFold(xForwardedProto, "http") || strings.EqualFold(xForwardedProto, "https") {
@@ -272,6 +276,7 @@ func GetProtocol(r *http.Request) string {
 	return proto
 }
 
+// sortQueryParams returns the sorted query parameter's list.
 func sortQueryParams(u *url.URL) string {
 	queryParams := u.Query()
 	sortedQuery := url.Values{}
@@ -285,11 +290,12 @@ func sortQueryParams(u *url.URL) string {
 	return u.String()
 }
 
-func IsMatchingReferrer(r *http.Request) (bool, error) {
-	fullURL := fmt.Sprintf("%s://%s%s", GetProtocol(r), r.Host, GetURL(r))
+// isMatchingReferrer checks that URL of the request is equal to the value of the `Referer` header.
+// The `dd_referrer` query parameter is omitted from the request's URL.
+func isMatchingReferrer(r *http.Request) (bool, error) {
+	fullURL := fmt.Sprintf("%s://%s%s", getProtocol(r), r.Host, getURL(r))
 	parsedUrl, err := url.Parse(fullURL)
 	if err != nil {
-		fmt.Println(fmt.Errorf("fail to parse request URL: %w", err))
 		return false, fmt.Errorf("fail to parse request URL: %w", err)
 	}
 	queryParams := parsedUrl.Query()
@@ -312,7 +318,9 @@ func IsMatchingReferrer(r *http.Request) (bool, error) {
 	return sortQueryParams(parsedUrl) == sortQueryParams(parsedReferer), nil
 }
 
-func RestoreReferrer(r *http.Request) error {
+// restoreReferrer replaces the value of the `Referer` header with the value of the `dd_referrer` query parameter.
+// If the `dd_referrer` value is empty, the `Referer` header is deleted from the request.
+func restoreReferrer(r *http.Request) error {
 	queryParams := r.URL.Query()
 	if queryParams.Has("dd_referrer") {
 		ddReferrer := queryParams.Get("dd_referrer")

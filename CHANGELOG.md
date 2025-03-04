@@ -1,5 +1,21 @@
 # DataDome Go Module
 
+## 2.0.0 (2025-03-04)
+
+### Breaking changes
+
+- Rename `DataDomeStruct` structure to `Client`
+- Remove `DataDome` prefix on fields of the `Client` structure
+- Replace sub-packages with a single `modulego` package
+- Update the `NewClient` signature to use the functional options pattern
+- Handle configuration errors during the client's instantiation
+
+### General changes
+
+- Add support of 301/302 redirections returned by the Protection API
+- Add `Logger` field to the `Client` structure
+- Enhance code documentation
+
 ## 1.3.0 (2024-12-18)
 
 - Add `EnableReferrerRestoration` field to enable the referrer restoration
