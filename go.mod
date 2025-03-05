@@ -1,4 +1,4 @@
-module github.com/datadome/module-go-package
+module github.com/datadome/module-go-package/v2
 
 go 1.20
 
