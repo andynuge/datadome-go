@@ -58,3 +58,10 @@ func WithUrlPatternInclusion(urlPatternInclusion string) Option {
 		c.UrlPatternInclusion = urlPatternInclusion
 	}
 }
+
+// WithXForwardedHost is a functional option to indicate to use the X-Forwarded-Host header first.
+func WithXForwardedHost(useXForwardedHost bool) Option {
+	return func(c *Client) {
+		c.UseXForwardedHost = useXForwardedHost
+	}
+}

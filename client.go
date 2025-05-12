@@ -158,6 +158,11 @@ func (c *Client) buildRequest(r *http.Request) (string, error) {
 		}
 	}
 
+	host := r.Host
+	if c.UseXForwardedHost {
+		host = getHost(r)
+	}
+
 	cookiesLen := "0"
 	if r.Header.Get("Cookie") != "" {
 		cookiesLen = strconv.Itoa(len(r.Header.Get("cookie")))
@@ -196,7 +201,7 @@ func (c *Client) buildRequest(r *http.Request) (string, error) {
 		CookiesLen:             cookiesLen,
 		From:                   truncateValue(From, r.Header.Get("from")),
 		HeadersList:            truncateValue(HeadersList, getHeaderList(r)),
-		Host:                   truncateValue(Host, r.Host),
+		Host:                   truncateValue(Host, host),
 		Method:                 r.Method,
 		ModuleVersion:          c.ModuleVersion,
 		Origin:                 truncateValue(Origin, r.Header.Get("origin")),
@@ -218,8 +223,8 @@ func (c *Client) buildRequest(r *http.Request) (string, error) {
 		SecFetchMode:           truncateValue(SecFetchMode, r.Header.Get("sec-fetch-mode")),
 		SecFetchSite:           truncateValue(SecFetchSite, r.Header.Get("sec-fetch-site")),
 		SecFetchUser:           truncateValue(SecFetchUser, r.Header.Get("sec-fetch-user")),
-		ServerHostName:         truncateValue(ServerHostname, r.Host),
-		ServerName:             truncateValue(ServerName, r.Host),
+		ServerHostName:         truncateValue(ServerHostname, host),
+		ServerName:             truncateValue(ServerName, host),
 		TimeRequest:            getMicroTime(),
 		TrueClientIP:           truncateValue(TrueClientIP, r.Header.Get("true-client-ip")),
 		UserAgent:              truncateValue(UserAgent, r.Header.Get("user-agent")),

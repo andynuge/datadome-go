@@ -228,3 +228,34 @@ func TestRestoreReferrer(t *testing.T) {
 	assert.Equal(t, "params", multipleQueryParams.Get("query"))
 	assert.Equal(t, "tata", multipleQueryParams.Get("toto"))
 }
+
+func TestGetHost(t *testing.T) {
+	reqWithXForwardedHost := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+	reqWithXForwardedHost.Header.Set("X-Forwarded-Host", "proxy.example.com")
+
+	reqWithoutXForwardedHost := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+
+	tests := []struct {
+		name     string
+		request  *http.Request
+		expected string
+	}{
+		{
+			name:     "With X-Forwarded-Host header",
+			request:  reqWithXForwardedHost,
+			expected: "proxy.example.com",
+		},
+		{
+			name:     "Without X-Forwarded-Host header",
+			request:  reqWithoutXForwardedHost,
+			expected: "example.com",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := getHost(tc.request)
+			assert.Equal(t, tc.expected, got)
+		})
+	}
+}

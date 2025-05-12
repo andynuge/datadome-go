@@ -174,6 +174,17 @@ func TestWithUrlPatternInclusion(t *testing.T) {
 	})
 }
 
+func TestWithXForwardedHost(t *testing.T) {
+	client, err := NewClient(
+		"your-api-key",
+		WithXForwardedHost(true),
+	)
+
+	assert.NotNil(t, client)
+	assert.Nil(t, err)
+	assert.True(t, client.UseXForwardedHost)
+}
+
 // Testable examples
 
 func ExampleWithEndpoint() {
@@ -231,4 +242,10 @@ func ExampleWithUrlPatternInclusion() {
 
 	fmt.Println(c.urlPatternInclusion)
 	// Output: (?i)\/this-path\/.*
+}
+
+func ExampleWithXForwardedHost() {
+	c, _ := NewClient("your-api-key", WithXForwardedHost(true))
+	fmt.Println(c.UseXForwardedHost)
+	// Output: true
 }

@@ -67,6 +67,7 @@ func TestNewClient(t *testing.T) {
 		assert.Equal(t, DefaultTimeoutValue, c.Timeout)
 		assert.Equal(t, DefaultUrlPatternInclusionValue, c.UrlPatternInclusion)
 		assert.Equal(t, DefaultUrlPatternExclusionValue, c.UrlPatternExclusion)
+		assert.Equal(t, DefaultUseXForwardedHostValue, c.UseXForwardedHost)
 
 		assert.NotNil(t, c.httpClient)
 		assert.NotNil(t, c.urlPatternExclusion)

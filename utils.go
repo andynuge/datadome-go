@@ -261,6 +261,17 @@ func getGraphQLData(r *http.Request, maximumBodySize int) (*GraphQLData, error) 
 	return parseGraphQLQuery(bodyStr), nil
 }
 
+// getHost returns the host of the request.
+// It uses the `X-Forwarded-Host` header value if the value exists.
+// Otherwise, it uses the `Host` field of the request.
+func getHost(r *http.Request) string {
+	xfh := r.Header.Get("X-Forwarded-Host")
+	if xfh != "" {
+		return xfh
+	}
+	return r.Host
+}
+
 // getProtocol returns the protocol of the request.
 // It uses the `X-Forwarded-Proto` header value if the value is correct (i.e. `http` or `https`).
 // It checks the TLS field of the request afterwards.

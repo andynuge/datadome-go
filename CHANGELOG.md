@@ -1,6 +1,10 @@
 # DataDome Go Module
 
-## 2.0.0 (2025-03-04)
+## v2.1.0 (2025-05-12)
+
+- Add `UseXForwardedHost` setting to support `host` override via `X-Forwarded-Host` header
+
+## v2.0.0 (2025-03-04)
 
 ### Breaking changes
 
@@ -16,11 +20,11 @@
 - Add `Logger` field to the `Client` structure
 - Enhance code documentation
 
-## 1.3.0 (2024-12-18)
+## v1.3.0 (2024-12-18)
 
 - Add `EnableReferrerRestoration` field to enable the referrer restoration
 
-## 1.2.0 (2O24-10-30)
+## v1.2.0 (2O24-10-30)
 
 - Add GraphQL support for POST requests
   - Add `EnableGraphQLSupport` field to enable GraphQL support
@@ -28,21 +32,21 @@
 - Add debug logs and enhance log outputs
   - Add `Debug` field to enable debug mode
 
-## 1.1.2 (2024-08-27)
+## v1.1.2 (2024-08-27)
 
 - Update `TimeRequest` value to a timestamp in microseconds without floating point to comply with the API contract
 - Update inclusion/exclusion regex matching to apply to the complete URL, making configuration simpler and more secure
 - Update default URL pattern exclusion regex to ensure consistent regex format across all platforms
 - Update truncation limits for the data sent to the API Server
 
-## 1.1.1 (2023-12-04)
+## v1.1.1 (2023-12-04)
 
 - Fix hostname for DataDome endpoint
 
-## 1.1.0 (2023-11-27)
+## v1.1.0 (2023-11-27)
 
 - Use hostname for endpoint configuration
 
-## 1.0.0 (2023-11-16)
+## v1.0.0 (2023-11-16)
 
 - First release 

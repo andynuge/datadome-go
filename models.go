@@ -11,10 +11,11 @@ const (
 	DefaultEndpointValue                  = "api.datadome.co"
 	DefaultMaximumBodySizeValue           = 25 * 1024
 	DefaultModuleNameValue                = "Golang"
-	DefaultModuleVersionValue             = "2.0.0"
+	DefaultModuleVersionValue             = "2.1.0"
 	DefaultTimeoutValue                   = 150
 	DefaultUrlPatternInclusionValue       = ""
 	DefaultUrlPatternExclusionValue       = `(?i)\.(avi|avif|bmp|css|eot|flac|flv|gif|gz|ico|jpeg|jpg|js|json|less|map|mka|mkv|mov|mp3|mp4|mpeg|mpg|ogg|ogm|opus|otf|png|svg|svgz|swf|ttf|wav|webm|webp|woff|woff2|xml|zip)$`
+	DefaultUseXForwardedHostValue         = false
 )
 
 // Client is used to interract with the DataDome's Protection API.
@@ -31,6 +32,7 @@ type Client struct {
 	Timeout                   int
 	UrlPatternInclusion       string
 	UrlPatternExclusion       string
+	UseXForwardedHost         bool
 
 	endpoint            string
 	httpClient          *http.Client
