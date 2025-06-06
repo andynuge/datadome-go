@@ -26,6 +26,18 @@ func getIP(r *http.Request) (string, error) {
 	return ip, err
 }
 
+// getCookieList returns the list of cookies' keys separated by commas
+func getCookieList(r *http.Request) string {
+	cookies := r.Cookies()
+	cookiesList := make([]string, 0, len(cookies))
+
+	for _, cookie := range cookies {
+		cookiesList = append(cookiesList, cookie.Name)
+	}
+
+	return strings.Join(cookiesList, ",")
+}
+
 // getHeaderList returns the list of header's keys separated by commas
 func getHeaderList(r *http.Request) string {
 	headerNames := make([]string, 0, len(r.Header))
@@ -78,6 +90,7 @@ const (
 	ClientID               ApiFields = "ClientID"
 	Connection             ApiFields = "Connection"
 	ContentType            ApiFields = "ContentType"
+	CookiesList            ApiFields = "CookiesList"
 	From                   ApiFields = "From"
 	GraphQLOperationCount  ApiFields = "GraphQLOperationCount"
 	GraphQLOperationName   ApiFields = "GraphQLOperationName"
@@ -130,7 +143,7 @@ func getTruncationSize(key ApiFields) int {
 		return -512
 	case UserAgent:
 		return 768
-	case Referer:
+	case Referer, CookiesList:
 		return 1024
 	case Request:
 		return 2048

@@ -168,6 +168,8 @@ func (c *Client) buildRequest(r *http.Request) (string, error) {
 		cookiesLen = strconv.Itoa(len(r.Header.Get("cookie")))
 	}
 
+	cookiesList := getCookieList(r)
+
 	ip, err := getIP(r)
 	if err != nil {
 		return "", fmt.Errorf("fail to parse request's IP: %w", err)
@@ -199,6 +201,7 @@ func (c *Client) buildRequest(r *http.Request) (string, error) {
 		Connection:             truncateValue(Connection, r.Header.Get("connection")),
 		ContentType:            truncateValue(ContentType, r.Header.Get("content-type")),
 		CookiesLen:             cookiesLen,
+		CookiesList:            cookiesList,
 		From:                   truncateValue(From, r.Header.Get("from")),
 		HeadersList:            truncateValue(HeadersList, getHeaderList(r)),
 		Host:                   truncateValue(Host, host),

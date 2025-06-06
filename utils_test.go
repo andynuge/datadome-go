@@ -15,6 +15,14 @@ func setup() *http.Request {
 	request.RemoteAddr = "127.0.0.1:1234"
 	request.Header.Set("Hello", "World")
 	request.Header.Set("X-Test", "123")
+	request.AddCookie(&http.Cookie{
+		Name:  "Foo",
+		Value: "fake_value1",
+	})
+	request.AddCookie(&http.Cookie{
+		Name:  "Bar",
+		Value: "fake_value2",
+	})
 
 	return request
 }
@@ -32,6 +40,15 @@ func TestGetIP(t *testing.T) {
 	result, err := getIP(request)
 	assert.Equal(t, "127.0.0.1", result)
 	assert.Equal(t, nil, err)
+}
+
+func TestGetCookieList(t *testing.T) {
+	request := setup()
+
+	result := getCookieList(request)
+
+	assert.Contains(t, result, "Foo")
+	assert.Contains(t, result, "Bar")
 }
 
 func TestGetHeaderList(t *testing.T) {

@@ -1,5 +1,9 @@
 # DataDome Go Module
 
+## v2.2.0 (2025-06-05)
+
+- Add `CookiesList` to payloads sent to Protection API
+
 ## v2.1.0 (2025-05-12)
 
 - Add `UseXForwardedHost` setting to support `host` override via `X-Forwarded-Host` header
