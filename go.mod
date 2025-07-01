@@ -1,9 +1,8 @@
 module github.com/datadome/module-go-package/v2
 
-go 1.20
+go 1.24.1
 
 require (
-	github.com/google/go-querystring v1.1.0
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/stretchr/testify v1.8.4
 )

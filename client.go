@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/go-querystring/query"
 )
 
 // NewClient instantiate a new DataDome [Client] to perform calls to Protection API.
@@ -250,10 +249,7 @@ func (c *Client) buildRequest(r *http.Request) (string, error) {
 		}
 	}
 
-	queryStr, err := query.Values(&ddRequestParams)
-	if err != nil {
-		return "", fmt.Errorf("fail to set query values: %w", err)
-	}
+	queryStr := buildQuery(&ddRequestParams)
 
 	return queryStr.Encode(), nil
 }
@@ -368,4 +364,156 @@ func getClientId(r *http.Request) string {
 	}
 
 	return ""
+}
+
+func buildQuery(p *ProtectionAPIRequestPayload) url.Values {
+	values := url.Values{}
+
+	// Required fields
+	values.Set("Key", p.Key)
+	values.Set("RequestModuleName", p.RequestModuleName)
+	values.Set("IP", p.IP)
+	values.Set("Request", p.Request)
+
+	// Optional fields
+	if p.ModuleVersion != "" {
+		values.Set("ModuleVersion", p.ModuleVersion)
+	}
+	if p.ServerName != "" {
+		values.Set("ServerName", p.ServerName)
+	}
+	if p.APIConnectionState != "" {
+		values.Set("APIConnectionState", p.APIConnectionState)
+	}
+	if p.Port != "" {
+		values.Set("Port", p.Port)
+	}
+	if p.TimeRequest != "" {
+		values.Set("TimeRequest", p.TimeRequest)
+	}
+	if p.Protocol != "" {
+		values.Set("Protocol", p.Protocol)
+	}
+	if p.Method != "" {
+		values.Set("Method", p.Method)
+	}
+	if p.ServerHostName != "" {
+		values.Set("ServerHostname", p.ServerHostName)
+	}
+	if p.HeadersList != "" {
+		values.Set("HeadersList", p.HeadersList)
+	}
+	if p.Host != "" {
+		values.Set("Host", p.Host)
+	}
+	if p.UserAgent != "" {
+		values.Set("UserAgent", p.UserAgent)
+	}
+	if p.Referer != "" {
+		values.Set("Referer", p.Referer)
+	}
+	if p.Accept != "" {
+		values.Set("Accept", p.Accept)
+	}
+	if p.AcceptEncoding != "" {
+		values.Set("AcceptEncoding", p.AcceptEncoding)
+	}
+	if p.AcceptLanguage != "" {
+		values.Set("AcceptLanguage", p.AcceptLanguage)
+	}
+	if p.AcceptCharset != "" {
+		values.Set("AcceptCharset", p.AcceptCharset)
+	}
+	if p.Origin != "" {
+		values.Set("Origin", p.Origin)
+	}
+	if p.XForwardedForIP != "" {
+		values.Set("XForwardedForIP", p.XForwardedForIP)
+	}
+	if p.XRequestedWith != "" {
+		values.Set("X-Requested-With", p.XRequestedWith)
+	}
+	if p.Connection != "" {
+		values.Set("Connection", p.Connection)
+	}
+	if p.Pragma != "" {
+		values.Set("Pragma", p.Pragma)
+	}
+	if p.CacheControl != "" {
+		values.Set("CacheControl", p.CacheControl)
+	}
+	if p.CookiesLen != "" {
+		values.Set("CookiesLen", p.CookiesLen)
+	}
+	if p.CookiesList != "" {
+		values.Set("CookiesList", p.CookiesList)
+	}
+	if p.AuthorizationLen != "" {
+		values.Set("AuthorizationLen", p.AuthorizationLen)
+	}
+	if p.PostParamLen != "" {
+		values.Set("PostParamLen", p.PostParamLen)
+	}
+	if p.XRealIP != "" {
+		values.Set("X-Real-IP", p.XRealIP)
+	}
+	if p.ClientID != "" {
+		values.Set("ClientID", p.ClientID)
+	}
+	if p.SecChDeviceMemory != "" {
+		values.Set("SecCHDeviceMemory", p.SecChDeviceMemory)
+	}
+	if p.SecChUA != "" {
+		values.Set("SecCHUA", p.SecChUA)
+	}
+	if p.SecChUAArch != "" {
+		values.Set("SecCHUAArch", p.SecChUAArch)
+	}
+	if p.SecChUAFullVersionList != "" {
+		values.Set("SecCHUAFullVersionList", p.SecChUAFullVersionList)
+	}
+	if p.SecChUAMobile != "" {
+		values.Set("SecCHUAMobile", p.SecChUAMobile)
+	}
+	if p.SecChUAModel != "" {
+		values.Set("SecCHUAModel", p.SecChUAModel)
+	}
+	if p.SecChUAPlatform != "" {
+		values.Set("SecCHUAPlatform", p.SecChUAPlatform)
+	}
+	if p.SecFetchDest != "" {
+		values.Set("SecFetchDest", p.SecFetchDest)
+	}
+	if p.SecFetchMode != "" {
+		values.Set("SecFetchMode", p.SecFetchMode)
+	}
+	if p.SecFetchSite != "" {
+		values.Set("SecFetchSite", p.SecFetchSite)
+	}
+	if p.SecFetchUser != "" {
+		values.Set("SecFetchUser", p.SecFetchUser)
+	}
+	if p.Via != "" {
+		values.Set("Via", p.Via)
+	}
+	if p.From != "" {
+		values.Set("From", p.From)
+	}
+	if p.ContentType != "" {
+		values.Set("ContentType", p.ContentType)
+	}
+	if p.TrueClientIP != "" {
+		values.Set("TrueClientIP", p.TrueClientIP)
+	}
+	if p.GraphQLOperationCount != "" {
+		values.Set("GraphQLOperationCount", p.GraphQLOperationCount)
+	}
+	if p.GraphQLOperationName != nil {
+		values.Set("GraphQLOperationName", *p.GraphQLOperationName)
+	}
+	if p.GraphQLOperationType != "" {
+		values.Set("GraphQLOperationType", string(p.GraphQLOperationType))
+	}
+
+	return values
 }
